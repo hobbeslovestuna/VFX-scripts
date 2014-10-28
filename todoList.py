@@ -6,6 +6,7 @@
 import os
 from xml.etree import ElementTree as Etree
 import nuke
+from nukescripts import panels
 from PySide.QtCore import *
 from PySide.QtGui import *
 
@@ -55,6 +56,9 @@ class TaskSaveAndLoad():
     '''
         Class to Save all the data regarding Tasks in XML and Read them.
     '''
+    def __init__(self):
+        if not nuke.Root()['project_directory'] == None:
+            pass
 
 class ToDoListUI(QWidget):
     '''
@@ -64,10 +68,26 @@ class ToDoListUI(QWidget):
     def __init__(self, parent = None):
 
         self._version   = '0.1'
-        self.panel      = QWidget.__init__(self, parent)
-        self.panel.setLayout(QVBoxLayout)
-
+        super(ToDoListUI, self).__init__(parent)
+        
+        self.layoutMain = QBoxLayout(QBoxLayout.TopToBottom, self)#.setLayout(QVBoxLayout)
         addTask_btn     = QPushButton('Add a task')
         showAllTask_btn = QPushButton('Show all task')
 
+        rowLayout = QHBoxLayout()
+        rowLayout.addWidget(addTask_btn)
+        rowLayout.addWidget(showAllTask_btn)
 
+        progress_bar = QProgressBar()
+
+        self.layoutMain.addLayout(rowLayout)
+        self.layoutMain.addWidget(progress_bar)
+
+        #---
+        #   Connextions
+        #---
+        self.connect(progress_bar, SIGNAL("clicked()"))
+        self.show()
+
+ui = ToDoListUI()
+#panels.registerWidgetAsPanel('ToDoListUI', 'TodoList', 'fr.victor.ToDoListUI')
