@@ -52,7 +52,7 @@ class Task(object):
     def __repr__(self):
         print 'Current task\n\tName :%s\n\tPriority :%i\n\t'
 
-class TaskSaveAndLoad():
+class TaskSaveAndLoader():
     '''
         Class to Save all the data regarding Tasks in XML and Read them.
         Takes a task and stores it in the XML File
@@ -63,6 +63,9 @@ class TaskSaveAndLoad():
             print nuke.Root()['project_directory'].value()
         else:
             print 'Not set'
+    def load(self):
+        if os.path.exists(path):
+            print 'yes'
 
 class MyPB(QProgressBar):
     
