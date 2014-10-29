@@ -55,10 +55,35 @@ class Task(object):
 class TaskSaveAndLoad():
     '''
         Class to Save all the data regarding Tasks in XML and Read them.
+        Takes a task and stores it in the XML File
+        Takes a XML file and retrieve all the tasks
     '''
     def __init__(self):
         if not nuke.Root()['project_directory'] == None:
-            pass
+            print nuke.Root()['project_directory'].value()
+        else:
+            print 'Not set'
+
+class MyPB(QProgressBar):
+    
+    left_clicked   = Signal()
+    right_clicked  = Signal()
+    dbl_clicked    = Signal()
+
+    def __init__(self):
+        QProgressBar.__init__(self)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            print 'Left cliked emitted'
+            self.left_clicked.emit()
+        if event.button() == Qt.RightButton:
+            print 'Right clicked emitted'
+            self.right_clicked.emit()
+        if event.button() == QEvent.MouseButtonDblClick:
+            print 'Double click'
+            self.dbl_clicked.emit()
+
 
 class ToDoListUI(QWidget):
     '''
@@ -78,16 +103,33 @@ class ToDoListUI(QWidget):
         rowLayout.addWidget(addTask_btn)
         rowLayout.addWidget(showAllTask_btn)
 
-        progress_bar = QProgressBar()
+        progressLayout      = QHBoxLayout()
+        updateAmount_btn    = QPushButton('Reset')
+        self.progress_bar   = MyPB()
+        progressLayout.addWidget(self.progress_bar)
+        progressLayout.addWidget(updateAmount_btn)
 
         self.layoutMain.addLayout(rowLayout)
-        self.layoutMain.addWidget(progress_bar)
+        self.layoutMain.addLayout(progressLayout)
+        # self.layoutMain.addWidget(progress_bar)
 
         #---
-        #   Connextions
+        #   Connections
         #---
-        self.connect(progress_bar, SIGNAL("clicked()"))
+        self.connect(updateAmount_btn, SIGNAL("clicked()"), self.reset)
+        self.progress_bar.left_clicked.connect(self.update)
+        self.progress_bar.right_clicked.connect(self.deupdate)
+        self.progress_bar.dbl_clicked.connect(self.reset)
         self.show()
 
+    def update(self):
+        value = self.progress_bar.value()
+        print value
+        self.progress_bar.setValue(value + 10)
+    def deupdate(self):
+        value = self.progress_bar.value()
+        self.progress_bar.setValue(value - 10)
+    def reset(self):
+        self.progress_bar.setValue(0)
 ui = ToDoListUI()
 #panels.registerWidgetAsPanel('ToDoListUI', 'TodoList', 'fr.victor.ToDoListUI')
