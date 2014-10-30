@@ -4,70 +4,114 @@
    version     : 0.1
 '''
 import os
-from xml.etree import ElementTree as Etree
+#from xml.etree import ElementTree as Etree
 import nuke
+import json
 from nukescripts import panels
 from PySide.QtCore import *
 from PySide.QtGui import *
 
-class Task(object):
+class Task(dict):
 
-    _STATUS = ['TODO', 'WIP', 'FINISHED']
+    __STATUS = ['TODO', 'WIP', 'FINISHED']
 
-    def __init__(self, name, prio, amount):
+    def __init__(self, name = None, prio = None, percent = 0):
         '''
             Init of the Task class.
-            3 params :
-                -_name
-                -_priority
-                -_amount done
+            4 params :
+                -name
+                -priority
+                -percent done
+                -stauts
         '''
-        self._status = _STATUS[0]
-        if not name == None and not prio == None:
-            self._name      = name
-            self._priority  = prio
-            self._amount    = amount
+        super(Task, self).__init__()
+        for key in ('name', 'priority', 'percent', 'status'):
+            self[key] = ''
+        if not name == None:
+            self['name'] = name
+        if not prio == None:
+            self['priority'] = prio
+        self['percent'] = percent
+        self['status'] = self.__STATUS[0]
+
+    @property
+    def name(self):
+        return self.get('name', '')
+
+    @name.setter
+    def name(self, val):
+        self['name'] = val
+
+    @property
+    def priority(self):
+        return self.get('priority', '')
+    
+    @priority.setter
+    def priority(self, val):
+        if isinstance(val, int):
+            self['priority'] = val
         else:
-            self._name      = ''
-            self._priority  = 0
-            self._amount    = 0
+            raise TypeError('The value you entered for the priority is not an int.')
 
-    def setName(self, name):
-        '''
-            Sets the name of the Task
-        '''
-        self._name = name
-
-    def setPriority(self, prio):
-        '''
-            Sets the priority of the Task
-        '''
-        self._priority = prio
-
-    def setStatus(self, status):
-        if status in _STATUS :
-            self._status = status
+    @property
+    def status(self):
+        return self.get('status', '')
+    @status.setter
+    def status(self, val):
+        if not val in self.__STATUS:
+            raise TypeError('The status does not belong to the list')
         else:
-            return -1
-    def __repr__(self):
-        print 'Current task\n\tName :%s\n\tPriority :%i\n\t'
+            self['status'] = val
 
-class TaskSaveAndLoader():
+    # def __repr__(self):
+    #     return json.dumps(self, sort_keys = True, indent = 4)
+
+
+class TaskSaveAndLoader(object):
     '''
         Class to Save all the data regarding Tasks in XML and Read them.
         Takes a task and stores it in the XML File
         Takes a XML file and retrieve all the tasks
     '''
     def __init__(self):
-        if not nuke.Root()['project_directory'] == None:
-            print nuke.Root()['project_directory'].value()
+        self.__path = None
+        if not nuke.Root()['name'] == None:
+            # print nuke.Root()['name'].value()
+            self.__path = os.path.split(nuke.Root()['name'].value())[0] + '/'
         else:
-            print 'Not set'
-    def load(self):
-        if os.path.exists(path):
-            print 'yes'
+            self.__path = None
+        print self.__path
+    
+    def loadTasks(self):
+        '''
+            loadTasks : Go fetch the json file which will have the name ToDoList.json
+        '''
+        if os.path.exists(self.__path):
+            jsonFile = os.path.join(self.__path, 'ToDoList.json')
+            jsonData = open(jsonFile, 'r')
+            print json.load(jsonData)
+            jsonData.close()
+    
+    def saveTask(self, Task):
+        '''
+            saveTask : Saves the task to the json file set with the path
+        '''
+        if os.path.exists(self.__path):
+            jsonFile = os.path.join(self.__path, 'ToDoList.json')
+            with open(jsonFile, 'w') as f:
+                json.dump(Task, f, indent = 4)
+        else:
+            raise IOError('The file could not be written du to a wring path')
 
-class MyPB(QProgressBar):
+    def saveTasks(self, listTasks):
+        jsonFile = os.path.join(self.__path, 'ToDoList.json')
+        with open(jsonFile, 'w') as f:
+            json.dump(task, f, indent = 4)
+        f.close()
+
+
+
+class TaskProgressBar(QProgressBar):
     
     left_clicked   = Signal()
     right_clicked  = Signal()
@@ -88,6 +132,36 @@ class MyPB(QProgressBar):
             self.dbl_clicked.emit()
 
 
+class TaskUI(QWidget):
+
+    def __init__(self):
+        self.taskLayout      = QHBoxLayout()
+        self.taskName        = QLineEdit('Task name/description')
+        self.taskPB          = TaskProgressBar()
+        self.taskReset_btn   = QPushButton('Reset')
+        
+        self.taskLayout.addWidget(self.taskName)
+        self.taskLayout.addWidget(self.taskPB)
+        self.taskLayout.addWidget(self.taskReset_btn)
+
+        self.taskPB.reset()
+
+        self.taskPB.left_clicked.connect(self.update)
+        self.taskPB.right_clicked.connect(self.deupdate)
+
+    def getLayout(self):
+        return self.taskLayout
+
+    def update(self):
+        value = self.taskPB.value()
+        print value
+        self.taskPB.setValue(value + 10)
+    def deupdate(self):
+        value = self.taskPB.value()
+        self.taskPB.setValue(value - 10)
+    def reset(self):
+        self.taskPB.setValue(0)
+
 class ToDoListUI(QWidget):
     '''
         The TodoList UI as a dockable widget
@@ -99,40 +173,41 @@ class ToDoListUI(QWidget):
         super(ToDoListUI, self).__init__(parent)
         
         self.layoutMain = QBoxLayout(QBoxLayout.TopToBottom, self)#.setLayout(QVBoxLayout)
-        addTask_btn     = QPushButton('Add a task')
-        showAllTask_btn = QPushButton('Show all task')
+        addTask_btn       = QPushButton('Add a task')
+        showAllTask_btn   = QPushButton('Show all task')
 
         rowLayout = QHBoxLayout()
         rowLayout.addWidget(addTask_btn)
         rowLayout.addWidget(showAllTask_btn)
 
-        progressLayout      = QHBoxLayout()
-        updateAmount_btn    = QPushButton('Reset')
-        self.progress_bar   = MyPB()
-        progressLayout.addWidget(self.progress_bar)
-        progressLayout.addWidget(updateAmount_btn)
+        # progressLayout      = QHBoxLayout()
+        # updatepercent_btn    = QPushButton('Reset')
+        # self.progress_bar   = TaskProgressBar()
+        # self.progress_bar.reset()
+        # progressLayout.addWidget(self.progress_bar)
+        # progressLayout.addWidget(updatepercent_btn)
 
         self.layoutMain.addLayout(rowLayout)
-        self.layoutMain.addLayout(progressLayout)
+        # self.layoutMain.addLayout(progressLayout)
         # self.layoutMain.addWidget(progress_bar)
 
         #---
         #   Connections
         #---
-        self.connect(updateAmount_btn, SIGNAL("clicked()"), self.reset)
-        self.progress_bar.left_clicked.connect(self.update)
-        self.progress_bar.right_clicked.connect(self.deupdate)
-        self.progress_bar.dbl_clicked.connect(self.reset)
+        # self.connect(updatepercent_btn, SIGNAL("clicked()"), self.reset)
+        addTask_btn.clicked.connect(self.addTaskUI)
+        # self.progress_bar.left_clicked.connect(self.update)
+        # self.progress_bar.right_clicked.connect(self.deupdate)
+        # # self.progress_bar.dbl_clicked.connect(self.reset)
         self.show()
 
-    def update(self):
-        value = self.progress_bar.value()
-        print value
-        self.progress_bar.setValue(value + 10)
-    def deupdate(self):
-        value = self.progress_bar.value()
-        self.progress_bar.setValue(value - 10)
-    def reset(self):
-        self.progress_bar.setValue(0)
+    def addTaskUI(self):
+        '''
+            Adds a layout being composed of a QLineEdit, a TaskProgressBar, and a button to reset the task
+        '''
+        taskUI = TaskUI()
+        self.layoutMain.addLayout(taskUI.getLayout())
+        
+
 ui = ToDoListUI()
 #panels.registerWidgetAsPanel('ToDoListUI', 'TodoList', 'fr.victor.ToDoListUI')
