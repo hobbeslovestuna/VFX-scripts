@@ -75,10 +75,14 @@ class TaskUI(QWidget):
         super(TaskUI, self).__init__()
 
         # self.task            = None
-        self.taskPriority    = 0
+        self.taskPriority    = QComboBox()
+        self.taskPriority.addItem('0')
+        self.taskPriority.addItem('1')
+        self.taskPriority.addItem('2')
+
         self.taskStatus      = QComboBox()
         for statu in self.__STATUS:
-            self.taskPriorityW.addItem(statu)
+            self.taskStatus.addItem(statu)
 
         self.taskLayout      = QHBoxLayout()
         self.taskName        = QLineEdit('Task name/description')
@@ -87,7 +91,8 @@ class TaskUI(QWidget):
         self.taskRemove_btn  = QPushButton('Remove Task')
 
         self.taskLayout.addWidget(self.taskName)
-        self.taskLayout.addWidget(self.taskPriorityW)
+        self.taskLayout.addWidget(self.taskStatus)
+        self.taskLayout.addWidget(self.taskPriority)
         self.taskLayout.addWidget(self.taskPB)
         self.taskLayout.addWidget(self.taskReset_btn)
         self.taskLayout.addWidget(self.taskRemove_btn)
@@ -112,7 +117,9 @@ class TaskUI(QWidget):
         self.taskReset_btn.deleteLater()
         self.taskRemove_btn.deleteLater()
         self.taskLayout.deleteLater()
-        self.taskPriorityW.deleteLater()
+        self.taskStatus.deleteLater()
+        self.taskPriority.deleteLater()
+
 
 class TaskProgressBar(QProgressBar):
     
@@ -144,6 +151,48 @@ class TaskProgressBar(QProgressBar):
     def reset(self):
         self.setValue(0)
 
+class TaskSaveAndLoader(object):
+    '''
+        Class to Save all the data regarding Tasks in XML and Read them.
+        Takes a task and stores it in the XML File
+        Takes a XML file and retrieve all the tasks
+    '''
+    def __init__(self):
+        self.__path = None
+        if not nuke.Root()['name'] == None:
+            # print nuke.Root()['name'].value()
+            self.__path = os.path.split(nuke.Root()['name'].value())[0] + '/'
+        else:
+            self.__path = None
+        print self.__path
+    
+    def loadTasks(self):
+        '''
+            loadTasks : Go fetch the json file which will have the name ToDoList.json
+        '''
+        if os.path.exists(self.__path):
+            jsonFile = os.path.join(self.__path, 'ToDoList.json')
+            jsonData = open(jsonFile, 'r')
+            print json.load(jsonData)
+            jsonData.close()
+    
+    def saveTask(self, Task):
+        '''
+            saveTask : Saves the task to the json file set with the path
+        '''
+        if os.path.exists(self.__path):
+            jsonFile = os.path.join(self.__path, 'ToDoList.json')
+            with open(jsonFile, 'w') as f:
+                json.dump(Task, f, indent = 4)
+        else:
+            raise IOError('The file could not be written du to a wring path')
+
+    def saveTasks(self, listTasks):
+        jsonFile = os.path.join(self.__path, 'ToDoList.json')
+        with open(jsonFile, 'w') as f:
+            json.dump(listTasks, f, indent = 4)
+        f.close()
+
 class ToDoListUI(QWidget):
     '''
         The TodoList UI as a dockable widget
@@ -172,7 +221,7 @@ class ToDoListUI(QWidget):
         #   Connections
         #---
         addTask_btn.clicked.connect(self.addTaskUI)
-        # saveAllTask_btn.clicked.connect(self.saveTodoList)
+        saveAllTask_btn.clicked.connect(self.saveTodoList)
         # showAllTask_btn.clicked.connect(self.printTaskUI)
 
         self.show()
@@ -190,6 +239,22 @@ class ToDoListUI(QWidget):
         for i in self.allTasksUI:
             print i
     def deleteTaskUI(self, taskUI):
+        #print taskUI
+        print self.allTasksUI
         taskUI.deleteTask()
-        print 'test'
+        if taskUI in self.allTasksUI:
+            self.allTasksUI.remove(taskUI)
+            print 'Done'
+        print self.allTasksUI
+
+    def saveTodoList(self):
+        tasksList = []
+        for taskUI in self.allTasksUI:
+            tasksList.append(Task(taskUI.taskName.text(), 
+                                  taskUI.taskStatus.currentText(),
+                                  taskUI.taskPB.value(),
+                                  int(taskUI.taskPriority.currentText())))
+        print tasksList
+        saver = TaskSaveAndLoader()
+        saver.saveTasks(tasksList)
 ui = ToDoListUI()
