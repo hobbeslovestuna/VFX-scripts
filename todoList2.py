@@ -69,9 +69,10 @@ class Task(dict):
         else:
             self['progress'] = val
 
+
 class TaskUI(QWidget):
     __STATUS = ['TODO', 'WIP', 'FINISHED']
-    def __init__(self):
+    def __init__(self, name = None, status = None, priority = None, progress = None):
         super(TaskUI, self).__init__()
 
         # self.task            = None
@@ -84,8 +85,13 @@ class TaskUI(QWidget):
         for statu in self.__STATUS:
             self.taskStatus.addItem(statu)
 
+
+
         self.taskLayout      = QHBoxLayout()
-        self.taskName        = QLineEdit('Task name/description')
+        if not name == None:
+            self.taskName = QLineEdit(str(name))
+        else:
+            self.taskName = QLineEdit('Task name/description')
         self.taskPB          = TaskProgressBar()
         self.taskReset_btn   = QPushButton('Reset')
         self.taskRemove_btn  = QPushButton('Remove Task')
@@ -97,7 +103,10 @@ class TaskUI(QWidget):
         self.taskLayout.addWidget(self.taskReset_btn)
         self.taskLayout.addWidget(self.taskRemove_btn)
 
-        self.taskPB.reset()
+        if not progress == None:
+            self.taskPB.setValue(int(progress))
+        else:
+            self.taskPB.reset()
         self.taskPB.left_clicked.connect(self.taskPB.update)
         self.taskPB.right_clicked.connect(self.taskPB.deupdate)
         self.taskReset_btn.clicked.connect(self.taskPB.reset)
@@ -166,6 +175,13 @@ class TaskSaveAndLoader(object):
             self.__path = None
         print self.__path
     
+    def taskFileExist(self):
+        if not self.__path == None:
+            if os.path.exists(os.path.join(self.__path, 'ToDoList.json')):
+                return True
+        else:
+            return False
+
     def loadTasks(self):
         '''
             loadTasks : Go fetch the json file which will have the name ToDoList.json
@@ -173,8 +189,11 @@ class TaskSaveAndLoader(object):
         if os.path.exists(self.__path):
             jsonFile = os.path.join(self.__path, 'ToDoList.json')
             jsonData = open(jsonFile, 'r')
-            print json.load(jsonData)
+            data = json.load(jsonData)
             jsonData.close()
+            # os.unlink(jsonFile)
+            self.__path = None
+            return data
     
     def saveTask(self, Task):
         '''
@@ -184,6 +203,9 @@ class TaskSaveAndLoader(object):
             jsonFile = os.path.join(self.__path, 'ToDoList.json')
             with open(jsonFile, 'w') as f:
                 json.dump(Task, f, indent = 4)
+            f.close()
+            # os.unlink(f)
+            self.__path = None
         else:
             raise IOError('The file could not be written du to a wring path')
 
@@ -192,6 +214,7 @@ class TaskSaveAndLoader(object):
         with open(jsonFile, 'w') as f:
             json.dump(listTasks, f, indent = 4)
         f.close()
+        self.__path = None
 
 class ToDoListUI(QWidget):
     '''
@@ -214,7 +237,6 @@ class ToDoListUI(QWidget):
         rowLayout.addWidget(saveAllTask_btn)
         rowLayout.addWidget(showAllTask_btn)
 
-
         self.layoutMain.addLayout(rowLayout)
 
         #---
@@ -224,17 +246,32 @@ class ToDoListUI(QWidget):
         saveAllTask_btn.clicked.connect(self.saveTodoList)
         # showAllTask_btn.clicked.connect(self.printTaskUI)
 
+        self.taskSaveAndLoader = TaskSaveAndLoader()
+        if self.taskSaveAndLoader.taskFileExist():
+            #Add tasks
+            existingTasks = self.taskSaveAndLoader.loadTasks()
+            print existingTasks
+            print '-'*20
+            for et in existingTasks:
+                #print et['name']
+                self.addTaskUI(et['name'], et['status'], et['priority'], et['progress'])
         self.show()
 
-    def addTaskUI(self):
+    def addTaskUI(self, name = None, status = None, priority = None, progress = None):
         '''
             Adds a layout being composed of a QLineEdit, a TaskProgressBar, and a button to reset the task
         '''
-        taskUI = TaskUI()
-        taskUI.taskRemove_btn.clicked.connect(partial(self.deleteTaskUI, taskUI))
-        self.layoutMain.addLayout(taskUI.getLayout())
-        self.allTasksUI.append(taskUI)
-    
+        if name == None and status == None and priority == None and progress == None:
+            taskUI = TaskUI()
+            taskUI.taskRemove_btn.clicked.connect(partial(self.deleteTaskUI, taskUI))
+            self.layoutMain.addLayout(taskUI.getLayout())
+            self.allTasksUI.append(taskUI)
+        else:
+            taskUI = TaskUI(name, status, priority, progress)
+            taskUI.taskRemove_btn.clicked.connect(partial(self.deleteTaskUI, taskUI))
+            self.layoutMain.addLayout(taskUI.getLayout())
+            self.allTasksUI.append(taskUI)
+
     def updateTaskUI(self):
         for i in self.allTasksUI:
             print i
