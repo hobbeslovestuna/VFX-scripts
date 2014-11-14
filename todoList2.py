@@ -16,7 +16,7 @@ class Task(dict):
 
     __STATUS = ['TODO', 'WIP', 'FINISHED']
 
-    def __init__(self, name = None, status = 'TODO', progress = 0, priority = 0):
+    def __init__(self, name = None, status = None, progress = 0, priority = 0):
         '''
             Task Class
             Defines a task, will be used to create the UI
@@ -28,7 +28,10 @@ class Task(dict):
             self['name'] = name
         self['priority'] = priority
         self['progress'] = progress
-        self['status'] = self.__STATUS[0]
+        if not self['status'] == None:
+           self['status'] = status
+        else:
+            self['status'] = self.__STATUS[0]
     
     @property
     def name(self):
@@ -85,6 +88,13 @@ class TaskUI(QWidget):
         for statu in self.__STATUS:
             self.taskStatus.addItem(statu)
 
+        if not status == None:
+            if status == self.__STATUS[0]:
+                self.taskStatus.setCurrentIndex(0)
+            elif status == self.__STATUS[1]:
+                self.taskStatus.setCurrentIndex(1)
+            else:
+                self.taskStatus.setCurrentIndex(2)
 
 
         self.taskLayout      = QHBoxLayout()
@@ -110,14 +120,10 @@ class TaskUI(QWidget):
         self.taskPB.left_clicked.connect(self.taskPB.update)
         self.taskPB.right_clicked.connect(self.taskPB.deupdate)
         self.taskReset_btn.clicked.connect(self.taskPB.reset)
+        self.taskStatus.currentIndexChanged.connect(self.updateStatus)
 
     def getLayout(self):
         return self.taskLayout
-
-    def getTaskFromUI(self):
-        self.task = Task(self.taskName.text(), self.taskPriority, self.taskPB.value())
-        #print self.task
-        return self.task
 
     def deleteTask(self):
         print 'prout'
@@ -128,6 +134,9 @@ class TaskUI(QWidget):
         self.taskLayout.deleteLater()
         self.taskStatus.deleteLater()
         self.taskPriority.deleteLater()
+
+    def updateStatus(self):
+        print self.taskStatus.currentText()
 
 
 class TaskProgressBar(QProgressBar):
@@ -250,8 +259,6 @@ class ToDoListUI(QWidget):
         if self.taskSaveAndLoader.taskFileExist():
             #Add tasks
             existingTasks = self.taskSaveAndLoader.loadTasks()
-            print existingTasks
-            print '-'*20
             for et in existingTasks:
                 #print et['name']
                 self.addTaskUI(et['name'], et['status'], et['priority'], et['progress'])
@@ -287,11 +294,14 @@ class ToDoListUI(QWidget):
     def saveTodoList(self):
         tasksList = []
         for taskUI in self.allTasksUI:
+            print taskUI.taskStatus.currentText()+'-'*10
             tasksList.append(Task(taskUI.taskName.text(), 
                                   taskUI.taskStatus.currentText(),
                                   taskUI.taskPB.value(),
-                                  int(taskUI.taskPriority.currentText())))
+                                  taskUI.taskPriority.currentText()))
         print tasksList
         saver = TaskSaveAndLoader()
         saver.saveTasks(tasksList)
+
 ui = ToDoListUI()
+panels.registerWidgetAsPanel('ToDoListUI', 'TodoList', 'fr.victor.ToDoListUI')
