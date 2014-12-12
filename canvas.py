@@ -1,6 +1,10 @@
+'''
+    A simple canvas creator
+    TODO : fix the threading and getting of w() and h()
+'''
 import threading
 import time
-
+import nuke
 
 def doIT():
     n = nuke.selectedNode()
@@ -10,7 +14,6 @@ def doIT():
     first   = nuke.Root()['first_frame'].value()
     last    = nuke.Root()['last_frame'].value()
     total   = last - first
-    currentFrame = nuke.frame()
     
     maxBBoxX = nuke.toNode('FrameBlend1').bbox().x()
     maxBBoxY = nuke.toNode('FrameBlend1').bbox().y()
@@ -20,10 +23,13 @@ def doIT():
     maxBBox = [maxBBoxX, maxBBoxY, maxBBoxR, maxBBoxT]
     print 'Value of the BBox '+str(maxBBox)
     
-    task        = nuke.ProgressTask('Getting Frame for max BBox\n value at x,y,r,t on frame %f' % currentFrame)
+    task        = nuke.ProgressTask('Getting Frame for max BBox\n value at x,y,r,t')
     progIncr    = 100.0 / total
     result      = []
-    for frame in range(first, last):
+    for frame in xrange(int(first), int(last)):
+        
+        frame = float(frame)
+
         if task.isCancelled():
             nuke.executeInMainThread(nuke.message, args=('Calculation aborted'))
             return
@@ -32,13 +38,13 @@ def doIT():
         nuke.frame(frame)
         time.sleep(.1)
         
-        if n.bbox().x() == maxBBox[0]:
-            print 'x found at frame %f' %frame
-            result.append(('x', frame))
-        if n.bbox().y() == maxBBox[1]:
-            print 'y found at frame %f' %frame
-            result.append(('y', frame))
-        
+        # if n.bbox().x() == maxBBox[0]:
+        #     print 'x found at frame %f' %frame
+        #     result.append(('x', frame))
+        # if n.bbox().y() == maxBBox[1]:
+        #     print 'y found at frame %f' %frame
+        #     result.append(('y', frame))
+        print frame, n.bbox().w()-maxBBox[0], maxBBox[2]
         if n.bbox().w() == maxBBox[2]:
             print 'r found at frame %f' %frame
         if n.bbox().h() == maxBBox[3]:
@@ -47,8 +53,7 @@ def doIT():
         task.setProgress(int(frame * progIncr))
         task.setMessage('Processing frame : '+str(frame))
 
-        nuke.frame(currentFrame)
     return 
 threading.Thread(target=doIT).start()
-threading.Thread().stop()
+#threading.Thread().stop()
 print 'DONE'
