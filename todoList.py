@@ -130,37 +130,56 @@ class TaskProgressBar(QProgressBar):
         if event.button() == QEvent.MouseButtonDblClick:
             print 'Double click'
             self.dbl_clicked.emit()
+    def update(self):
+        value = self.value()
+        print value
+        self.setValue(value + 10)
 
+    def deupdate(self):
+        value = self.value()
+        self.setValue(value - 10)
+    def reset(self):
+        self.setValue(0)
 
 class TaskUI(QWidget):
 
-    def __init__(self):
+    def __init__(self, parent):
+        super(TaskUI, self).__init__(parent)
+        self.task            = None
+        self.taskPriority    = 0
         self.taskLayout      = QHBoxLayout()
         self.taskName        = QLineEdit('Task name/description')
         self.taskPB          = TaskProgressBar()
         self.taskReset_btn   = QPushButton('Reset')
+        self.taskRemove_btn  = QPushButton('Remove Task')
         
         self.taskLayout.addWidget(self.taskName)
         self.taskLayout.addWidget(self.taskPB)
         self.taskLayout.addWidget(self.taskReset_btn)
+        self.taskLayout.addWidget(self.taskRemove_btn)
 
         self.taskPB.reset()
 
-        self.taskPB.left_clicked.connect(self.update)
-        self.taskPB.right_clicked.connect(self.deupdate)
+        self.taskPB.left_clicked.connect(self.taskPB.update)
+        self.taskPB.right_clicked.connect(self.taskPB.deupdate)
+        self.taskReset_btn.clicked.connect(self.taskPB.reset)
+        self.taskRemove_btn.clicked.connect(ToDoListUI.printTaskUI)
 
     def getLayout(self):
         return self.taskLayout
 
-    def update(self):
-        value = self.taskPB.value()
-        print value
-        self.taskPB.setValue(value + 10)
-    def deupdate(self):
-        value = self.taskPB.value()
-        self.taskPB.setValue(value - 10)
-    def reset(self):
-        self.taskPB.setValue(0)
+    def getTaskFromUI(self):
+        self.task = Task(self.taskName.text(), self.taskPriority, self.taskPB.value())
+        #print self.task
+        return self.task
+    
+    def deleteTask(self):
+        print 'prout'
+        self.taskName.deleteLater()
+        self.taskPB.deleteLater()
+        self.taskReset_btn.deleteLater()
+        self.taskRemove_btn.deleteLater()
+        self.taskLayout.deleteLater()
 
 class ToDoListUI(QWidget):
     '''
@@ -169,45 +188,54 @@ class ToDoListUI(QWidget):
     '''
     def __init__(self, parent = None):
 
-        self._version   = '0.1'
         super(ToDoListUI, self).__init__(parent)
+        self._version       = '0.1'
+        self.allTasksUI     = []
         
-        self.layoutMain = QBoxLayout(QBoxLayout.TopToBottom, self)#.setLayout(QVBoxLayout)
-        addTask_btn       = QPushButton('Add a task')
-        showAllTask_btn   = QPushButton('Show all task')
+        self.layoutMain     = QBoxLayout(QBoxLayout.TopToBottom, self)#.setLayout(QVBoxLayout)
+        addTask_btn         = QPushButton('Add a task')
+        showAllTask_btn     = QPushButton('Show all task')
+        saveAllTask_btn     = QPushButton('Save all tasks')
 
         rowLayout = QHBoxLayout()
         rowLayout.addWidget(addTask_btn)
+        rowLayout.addWidget(saveAllTask_btn)
         rowLayout.addWidget(showAllTask_btn)
 
-        # progressLayout      = QHBoxLayout()
-        # updatepercent_btn    = QPushButton('Reset')
-        # self.progress_bar   = TaskProgressBar()
-        # self.progress_bar.reset()
-        # progressLayout.addWidget(self.progress_bar)
-        # progressLayout.addWidget(updatepercent_btn)
 
         self.layoutMain.addLayout(rowLayout)
-        # self.layoutMain.addLayout(progressLayout)
-        # self.layoutMain.addWidget(progress_bar)
 
         #---
         #   Connections
         #---
-        # self.connect(updatepercent_btn, SIGNAL("clicked()"), self.reset)
         addTask_btn.clicked.connect(self.addTaskUI)
-        # self.progress_bar.left_clicked.connect(self.update)
-        # self.progress_bar.right_clicked.connect(self.deupdate)
-        # # self.progress_bar.dbl_clicked.connect(self.reset)
+        saveAllTask_btn.clicked.connect(self.saveTodoList)
+        showAllTask_btn.clicked.connect(self.printTaskUI)
+
         self.show()
 
     def addTaskUI(self):
         '''
             Adds a layout being composed of a QLineEdit, a TaskProgressBar, and a button to reset the task
         '''
-        taskUI = TaskUI()
+        taskUI = TaskUI(parent = self)
         self.layoutMain.addLayout(taskUI.getLayout())
+        self.allTasksUI.append(taskUI)
         
+    def saveTodoList(self, listTaskUI):
+        # for i in list
+        pass
+    
+    def printTask(self):
+        for i in range(self.layoutMain.count()):
+            sublayout = self.layoutMain.itemAt(i)
+            for s in range(sublayout.count()):
+                print type(sublayout.itemAt(s))
+                print s
+
+    def printTaskUI(self):
+        for task in self.allTasksUI:
+            print task.getTaskFromUI()
 
 ui = ToDoListUI()
-#panels.registerWidgetAsPanel('ToDoListUI', 'TodoList', 'fr.victor.ToDoListUI')
+panels.registerWidgetAsPanel('ToDoListUI', 'TodoList', 'fr.victor.ToDoListUI')

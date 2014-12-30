@@ -4,7 +4,6 @@
    version     : 0.1
 '''
 import os
-#from xml.etree import ElementTree as Etree
 import nuke
 import json
 from nukescripts import panels
@@ -74,6 +73,9 @@ class Task(dict):
 
 
 class TaskUI(QWidget):
+    '''
+        TaskUI : a class that rperesent a Task using QWidgets
+    '''
     __STATUS = ['TODO', 'WIP', 'FINISHED']
     def __init__(self, name = None, status = None, priority = None, progress = None):
         super(TaskUI, self).__init__()
@@ -140,7 +142,9 @@ class TaskUI(QWidget):
 
 
 class TaskProgressBar(QProgressBar):
-    
+    '''
+        Implementation of our own QProgressBar to enable it to be clicked
+    '''
     left_clicked   = Signal()
     right_clicked  = Signal()
     dbl_clicked    = Signal()
@@ -171,9 +175,9 @@ class TaskProgressBar(QProgressBar):
 
 class TaskSaveAndLoader(object):
     '''
-        Class to Save all the data regarding Tasks in XML and Read them.
-        Takes a task and stores it in the XML File
-        Takes a XML file and retrieve all the tasks
+        Class to Save all the data regarding Tasks in JSON and Read them.
+        Takes a task and stores it in the JSON File
+        Takes a JSON file and retrieve all the tasks
     '''
     def __init__(self):
         self.__path = None
@@ -246,7 +250,10 @@ class ToDoListUI(QWidget):
         rowLayout.addWidget(saveAllTask_btn)
         rowLayout.addWidget(showAllTask_btn)
 
+        self.tasksLayout = QVBoxLayout()
+
         self.layoutMain.addLayout(rowLayout)
+        self.layoutMain.addLayout(self.tasksLayout)
 
         #---
         #   Connections
@@ -262,7 +269,7 @@ class ToDoListUI(QWidget):
             for et in existingTasks:
                 #print et['name']
                 self.addTaskUI(et['name'], et['status'], et['priority'], et['progress'])
-        self.show()
+        # self.show()
 
     def addTaskUI(self, name = None, status = None, priority = None, progress = None):
         '''
@@ -271,12 +278,14 @@ class ToDoListUI(QWidget):
         if name == None and status == None and priority == None and progress == None:
             taskUI = TaskUI()
             taskUI.taskRemove_btn.clicked.connect(partial(self.deleteTaskUI, taskUI))
-            self.layoutMain.addLayout(taskUI.getLayout())
+            self.tasksLayout.addLayout(taskUI.getLayout())
+            # self.tasksContainer.addLayout(taskUI.getLayout())
             self.allTasksUI.append(taskUI)
         else:
             taskUI = TaskUI(name, status, priority, progress)
             taskUI.taskRemove_btn.clicked.connect(partial(self.deleteTaskUI, taskUI))
-            self.layoutMain.addLayout(taskUI.getLayout())
+            self.tasksLayout.addLayout(taskUI.getLayout())
+            # self.tasksContainer.addLayout(taskUI.getLayout())
             self.allTasksUI.append(taskUI)
 
     def updateTaskUI(self):
@@ -304,4 +313,4 @@ class ToDoListUI(QWidget):
         saver.saveTasks(tasksList)
 
 ui = ToDoListUI()
-panels.registerWidgetAsPanel('ToDoListUI', 'TodoList', 'fr.victor.ToDoListUI')
+panels.registerWidgetAsPanel('todoList2.ToDoListUI', 'TodoList2', 'fr.victor.ToDoListUI')
