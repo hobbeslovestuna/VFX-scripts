@@ -4,4 +4,6 @@
 #   version : 0.1
 #   author  : Victor Fleury
 ###############
- print 'Hello world'
+
+import os
+import nuke
