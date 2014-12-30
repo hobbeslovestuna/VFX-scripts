@@ -1,7 +1,7 @@
 '''_________________
    vTodoList   : a simple TodoList widget for nuke to help organize your work
    author      : Victor Fleury
-   version     : 0.1
+   version     : 0.2
 '''
 import os
 import nuke
