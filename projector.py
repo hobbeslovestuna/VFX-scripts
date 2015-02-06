@@ -124,9 +124,11 @@ def projection(userTrackData, offset = 0):
 
     #--Reformat
     reformat = nuke.createNode("Reformat")
-    reformat.setXYpos(scanline.xpos() - 131 , scanline.ypos())
+    reformat.setXYpos(scanline.xpos() - 131 , scanline.ypos() - 6)
+    reformat['format'].setValue('square_2K')
+    reformat.setInput(0, None)
 
-    scanline.setInput(0, card)
-    scanline.setInput(2, reformat)
+    scanline.setInput(0, reformat)
+    scanline.setInput(1, card)
 
 
