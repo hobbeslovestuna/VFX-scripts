@@ -56,23 +56,8 @@ def createProjectionSetup(listData):
  
     for userTrack in listData:
 
-        dotPlate = nuke.createNode("Dot")
-        dotPlate['label'].setValue("PLATE")
+        projection(userTrack)
 
-        dotCamera = nuke.createNode("Dot")
-        dotCamera['label'].setValue("CAMERA")
-
-        dotPlate.setXpos(cameraTrackerPosition[0] - 100)
-        dotPlate.setYpos(cameraTrackerPosition[1] - 3)
-
-        dotCamera.setXpos(cameraTrackerPosition[0] - 100)
-        dotCamera.setYpos()
-        
-        # print userTrack
-        # c = nuke.createNode("Card2")
-        # c['name'].setValue(userTrack['userTrackName'])
-        # c['gl_color'].setValue(6278255615)
-        # c['tile_color'].setValue(6278255615)
 def projection(userTrackData, offset = 0):
 
     try:
