@@ -55,6 +55,9 @@ def createProjectionSetup(listData):
     readNode = nuke.selectedNode().input(0)['name'].value()
  
     for userTrack in listData:
+        #print i
+        print userTrack['xyz']
+        print '_'*30
 
         projection(userTrack)
 
@@ -116,4 +119,129 @@ def projection(userTrackData, offset = 0):
     scanline.setInput(0, reformat)
     scanline.setInput(1, card)
 
+def proj2(userTrackDatas):
 
+    try:
+        cameraTrackerNode = nuke.selectedNode()
+    except ValueError:
+        print 'You must select a camera Tracker node !'
+        return -1
+    cameraTrackerPosition = [cameraTrackerNode.xpos(), cameraTrackerNode.ypos()]
+    
+    lastDotPlate = None
+    lastDotCam = None
+    
+    for userTrackData in userTrackDatas:#range(1, numOcc+1):
+        if userTrackDatas.index(userTrackData) == 0:
+            dotPlate = nuke.createNode("Dot")
+            dotPlate['label'].setValue("PLATE")
+
+            dotCamera = nuke.createNode("Dot")
+            dotCamera['label'].setValue("CAMERA")
+
+            dotPlate.setXpos(cameraTrackerPosition[0] - 100)
+            dotPlate.setYpos(cameraTrackerPosition[1] + 3)
+
+            dotCamera.setXpos(cameraTrackerPosition[0] - 150)
+            dotCamera.setYpos(cameraTrackerPosition[1] - 30)
+
+            dotPlate.setInput(0, cameraTrackerNode)
+            dotCamera.setInput(0, nuke.toNode('Camera1'))
+
+            lastDotPlate = dotPlate
+            lastDotCam = dotCamera
+
+             #--Project3D
+            projection3DNode = nuke.createNode('Project3D')
+            projection3DNode.setYpos(dotPlate.ypos()+130)
+            projection3DNode.setXpos(dotPlate.xpos()-34)
+
+            dotCam2 = nuke.createNode("Dot")
+            dotCam2.setXpos(dotCamera.xpos())
+            dotCam2.setYpos(projection3DNode.ypos())
+            dotCam2.setInput(0, dotCamera)
+
+            projection3DNode.setInput(0, dotPlate)
+            projection3DNode.setInput(1, dotCam2)
+
+            #--card
+            card = nuke.createNode("Card2")
+            card['translate'].setValue(userTrackData['xyz'])
+            card['uniform_scale'].setValue(0.06)
+            card.setInput(0, projection3DNode)
+            card.setXpos(projection3DNode.xpos())
+            card.setYpos(projection3DNode.ypos() + 30)
+            
+            #--scanlineRender
+            scanline = nuke.createNode("ScanlineRender")
+            scanline['projection_mode'].setValue('uv')
+            scanline.setXYpos(card.xpos(), card.ypos() + 40)
+
+            #--Reformat
+            reformatNode = nuke.createNode("Reformat")
+            reformatNode.setXYpos(scanline.xpos() - 131 , scanline.ypos() - 6)
+            reformatNode['format'].setValue('square_2K')
+            reformatNode.setInput(0, None)
+
+            scanline.setInput(0, None)
+            scanline.setInput(1, card)
+            scanline.setInput(2, None)
+            scanline.setInput(0, reformatNode)
+
+        else:
+            lastDotPlate_Position = [lastDotPlate.xpos(), lastDotPlate.ypos()]
+            lastDotCam_Position = [lastDotCam.xpos(), lastDotCam.ypos()]
+            dotPlate = nuke.createNode("Dot")
+            dotPlate['label'].setValue("PLATE")
+
+            dotCamera = nuke.createNode("Dot")
+            dotCamera['label'].setValue("CAMERA")
+
+            dotPlate.setXpos(lastDotPlate_Position[0] - 300)
+            dotPlate.setYpos(lastDotPlate_Position[1])
+
+            dotCamera.setXpos(lastDotCam_Position[0] - 300)
+            dotCamera.setYpos(lastDotCam_Position[1])
+
+            dotPlate.setInput(0, lastDotPlate)
+            dotCamera.setInput(0, lastDotCam)
+
+             #--Project3D
+            projection3DNode = nuke.createNode('Project3D')
+            projection3DNode.setYpos(dotPlate.ypos()+130)
+            projection3DNode.setXpos(dotPlate.xpos()-34)
+
+            dotCam2 = nuke.createNode("Dot")
+            dotCam2.setXpos(dotCamera.xpos())
+            dotCam2.setYpos(projection3DNode.ypos())
+            dotCam2.setInput(0, dotCamera)
+
+            projection3DNode.setInput(0, dotPlate)
+            projection3DNode.setInput(1, dotCam2)
+
+            #--card
+            card = nuke.createNode("Card2")
+            card['translate'].setValue(userTrackData['xyz'])
+            card['uniform_scale'].setValue(0.06)
+            card.setInput(0, projection3DNode)
+            card.setXpos(projection3DNode.xpos())
+            card.setYpos(projection3DNode.ypos() + 30)
+            
+            #--scanlineRender
+            scanline = nuke.createNode("ScanlineRender")
+            scanline['projection_mode'].setValue('uv')
+            scanline.setXYpos(card.xpos(), card.ypos() + 40)
+
+            #--Reformat
+            reformat = nuke.createNode("Reformat")
+            reformat.setXYpos(scanline.xpos() - 131 , scanline.ypos() - 6)
+            reformat['format'].setValue('square_2K')
+            reformat.setInput(0, None)
+
+            scanline.setInput(0, None)
+            scanline.setInput(1, card)
+            scanline.setInput(2, None)
+            scanline.setInput(0, reformat)
+            
+            lastDotPlate = dotPlate
+            lastDotCam = dotCamera
