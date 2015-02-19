@@ -38,88 +38,7 @@ def getDatas():
 
         return listData
 
-def createProjectionSetup(listData):
-    '''
-        Creates the projection setup with a project3D node per card and a dot connected 
-        Returns : None
-    '''
-
-    try:
-        cameraTrackerNode = nuke.selectedNode()
-    except ValueError:
-        print 'You must select a camera Tracker node !'
-        return -1
-    cameraTrackerPosition = [cameraTrackerNode.xpos(), cameraTrackerNode.ypos()]
-    
-    numOfCards = len(listData)
-    readNode = nuke.selectedNode().input(0)['name'].value()
- 
-    for userTrack in listData:
-        #print i
-        print userTrack['xyz']
-        print '_'*30
-
-        projection(userTrack)
-
-def projection(userTrackData, offset = 0):
-
-    try:
-        cameraTrackerNode = nuke.selectedNode()
-    except ValueError:
-        print 'You must select a camera Tracker node !'
-        return -1
-    cameraTrackerPosition = [cameraTrackerNode.xpos(), cameraTrackerNode.ypos()]
-    
-    dotPlate = nuke.createNode("Dot")
-    dotPlate['label'].setValue("PLATE")
-
-    dotCamera = nuke.createNode("Dot")
-    dotCamera['label'].setValue("CAMERA")
-
-    dotPlate.setXpos(cameraTrackerPosition[0] - 100)
-    dotPlate.setYpos(cameraTrackerPosition[1] + 3)
-
-    dotCamera.setXpos(cameraTrackerPosition[0] - 150)
-    dotCamera.setYpos(cameraTrackerPosition[1] - 30)
-
-    dotPlate.setInput(0, cameraTrackerNode)
-    dotCamera.setInput(0, nuke.toNode('Camera1'))
-
-    #--Project3D
-    projection3DNode = nuke.createNode('Project3D')
-    projection3DNode.setYpos(dotPlate.ypos()+130)
-    projection3DNode.setXpos(dotPlate.xpos()-34)
-
-    dotCam2 = nuke.createNode("Dot")
-    dotCam2.setXpos(dotCamera.xpos())
-    dotCam2.setYpos(projection3DNode.ypos())
-    dotCam2.setInput(0, dotCamera)
-
-    projection3DNode.setInput(0, dotPlate)
-    projection3DNode.setInput(1, dotCam2)
-
-    #--card
-    card = nuke.createNode("Card2")
-    card['translate'].setValue(userTrackData['xyz'])
-    card.setInput(0, projection3DNode)
-    card.setXpos(projection3DNode.xpos())
-    card.setYpos(projection3DNode.ypos() + 30)
-    
-    #--scanlineRender
-    scanline = nuke.createNode("ScanlineRender")
-    scanline['projection_mode'].setValue('uv')
-    scanline.setXYpos(card.xpos(), card.ypos() + 40)
-
-    #--Reformat
-    reformat = nuke.createNode("Reformat")
-    reformat.setXYpos(scanline.xpos() - 131 , scanline.ypos() - 6)
-    reformat['format'].setValue('square_2K')
-    reformat.setInput(0, None)
-
-    scanline.setInput(0, reformat)
-    scanline.setInput(1, card)
-
-def proj2(userTrackDatas):
+def projection(userTrackDatas, addRoto = False, addRotoPaint = False):
 
     try:
         cameraTrackerNode = nuke.selectedNode()
@@ -181,12 +100,35 @@ def proj2(userTrackDatas):
             reformatNode = nuke.createNode("Reformat")
             reformatNode.setXYpos(scanline.xpos() - 131 , scanline.ypos() - 6)
             reformatNode['format'].setValue('square_2K')
+            reformatNode['hide_input'].setValue(True)
             reformatNode.setInput(0, None)
 
+            #--Scanline
             scanline.setInput(0, None)
             scanline.setInput(1, card)
             scanline.setInput(2, None)
             scanline.setInput(0, reformatNode)
+
+            if addRoto:
+                roto = nuke.createNode("Roto")
+                roto.setInput(0, scanline)
+                roto.setXYpos(scanline.xpos(), scanline.ypos() + 80)
+            elif addRotoPaint:
+                rotopaint = nuke.createNode("RotoPaint")
+                rotopaint.setInput(0, scanline)
+                rotopaint.setXYpos(scanline.xpos(), scanline.ypos() + 80)
+
+            card2 = nuke.createNode("Card2")
+            card2['translate'].setExpression('parent.%s.translate' %card['name'].value())
+            card2['uniform_scale'].setExpression('parent.%s.uniform_scale' %card['name'].value())
+            card2.setXYpos(card.xpos(), card.ypos() + 80)
+            
+            if addRoto:
+                card2.setInput(0, roto)
+            elif addRotoPaint:
+                card2.setInput(0, rotopaint)
+            else:
+                card2.setInput(0, scanline)
 
         else:
             lastDotPlate_Position = [lastDotPlate.xpos(), lastDotPlate.ypos()]
@@ -237,11 +179,36 @@ def proj2(userTrackDatas):
             reformat.setXYpos(scanline.xpos() - 131 , scanline.ypos() - 6)
             reformat['format'].setValue('square_2K')
             reformat.setInput(0, None)
+            reformat['hide_input'].setValue(True)
 
             scanline.setInput(0, None)
             scanline.setInput(1, card)
             scanline.setInput(2, None)
             scanline.setInput(0, reformat)
-            
+
+            if addRoto:
+                roto = nuke.createNode("Roto")
+                roto.setInput(0, scanline)
+                roto.setXYpos(scanline.xpos(), scanline.ypos() + 80)
+            elif addRotoPaint:
+                rotopaint = nuke.createNode("RotoPaint")
+                rotopaint.setInput(0, scanline)
+                rotopaint.setXYpos(scanline.xpos(), scanline.ypos() + 80)
+
+            card2 = nuke.createNode("Card2")
+            card2['translate'].setExpression('parent.%s.translate' %card['name'].value())
+            card2['uniform_scale'].setExpression('parent.%s.uniform_scale' %card['name'].value())
+            card2.setXYpos(card.xpos(), card.ypos() + 150)
+            if addRoto:
+                card2.setInput(0, roto)
+            elif addRotoPaint:
+                card2.setInput(0, rotopaint)
+            else:
+                card2.setInput(0, scanline)
+
             lastDotPlate = dotPlate
             lastDotCam = dotCamera
+
+    cards = [card for card in nuke.allNodes() if card.Class() == 'Card2']
+    for card in cards:
+        print card.input(0)['name'].value()
